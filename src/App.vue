@@ -187,7 +187,7 @@ const byDiscipline = computed(() =>
 )
 const byTournament = computed(() =>
   sortStatsEntries(
-    Object.entries(aggregateBy(filteredBets.value, (bet) => `${bet.tournament} (${bet.discipline})`)),
+    Object.entries(aggregateBy(filteredBets.value, (bet) => `${bet.tournament} (${bet.type})`)),
   ),
 )
 
@@ -348,14 +348,14 @@ onMounted(async () => {
     </div>
 
     <section v-if="activeTab === 'bets'" class="panel">
-      <div class="file-row">
+      <div class="file-row section-card">
         <p><strong>Файл по умолчанию:</strong> <code>public/data/default-bets.txt</code></p>
         <input type="file" @change="handleBetsFile" />
       </div>
 
       <div v-if="store.bets.length">
-        <h2>Фильтры периода</h2>
-        <p>
+        <h2 class="section-title">Фильтры периода</h2>
+        <p class="muted-text">
           Доступный диапазон дат:
           <strong>{{ minDate ? formatDate(minDate) : '-' }}</strong>
           —
@@ -413,7 +413,7 @@ onMounted(async () => {
           </template>
         </div>
 
-        <h2>Общая статистика ставок</h2>
+        <h2 class="section-title">Общая статистика ставок</h2>
         <div class="stats-grid">
           <div class="stat-item"><span>Всего ставок</span><strong>{{ totalBets }}</strong></div>
           <div class="stat-item"><span>Выигрышных</span><strong>{{ wins }}</strong></div>
@@ -424,7 +424,7 @@ onMounted(async () => {
           <div class="stat-item"><span>ROI</span><strong>{{ roi.toFixed(2) }}%</strong></div>
         </div>
 
-        <h2>Сортировка статистик</h2>
+        <h2 class="section-title">Сортировка статистик</h2>
         <div class="filters-grid">
           <label>
             По:
@@ -443,25 +443,28 @@ onMounted(async () => {
           </label>
         </div>
 
-        <h2>По дисциплинам</h2>
+        <h2 class="section-title">По дисциплинам</h2>
         <div v-for="[key, val] in byDiscipline" :key="key" class="list-row">
-          <span>{{ key }}</span>
-          <span>ставок: {{ val.count }}, чистая прибыль: {{ formatCurrency(val.profit) }}</span>
+          <span class="list-key">{{ key }}</span>
+          <span class="list-value">Ставок: <strong>{{ val.count }}</strong></span>
+          <span class="list-value">Чистая прибыль: <strong>{{ formatCurrency(val.profit) }}</strong></span>
         </div>
 
-        <h2>По типу</h2>
+        <h2 class="section-title">По типу</h2>
         <div v-for="[key, val] in byType" :key="key" class="list-row">
-          <span>{{ key }}</span>
-          <span>ставок: {{ val.count }}, чистая прибыль: {{ formatCurrency(val.profit) }}</span>
+          <span class="list-key">{{ key }}</span>
+          <span class="list-value">Ставок: <strong>{{ val.count }}</strong></span>
+          <span class="list-value">Чистая прибыль: <strong>{{ formatCurrency(val.profit) }}</strong></span>
         </div>
 
-        <h2>По турнирам</h2>
+        <h2 class="section-title">По турнирам</h2>
         <div v-for="[key, val] in byTournament" :key="key" class="list-row">
-          <span>{{ key }}</span>
-          <span>ставок: {{ val.count }}, чистая прибыль: {{ formatCurrency(val.profit) }}</span>
+          <span class="list-key">{{ key }}</span>
+          <span class="list-value">Ставок: <strong>{{ val.count }}</strong></span>
+          <span class="list-value">Чистая прибыль: <strong>{{ formatCurrency(val.profit) }}</strong></span>
         </div>
 
-        <h2>График прибыли</h2>
+        <h2 class="section-title">График прибыли</h2>
         <div class="chart-box">
           <Line :data="chartData" />
         </div>
@@ -469,13 +472,13 @@ onMounted(async () => {
     </section>
 
     <section v-else class="panel">
-      <div class="file-row">
+      <div class="file-row section-card">
         <p><strong>Файл по умолчанию:</strong> <code>public/data/default-finance.txt</code></p>
         <input type="file" @change="handleFinanceFile" />
       </div>
 
-      <h2>Финансовая статистика</h2>
-      <p>
+      <h2 class="section-title">Финансовая статистика</h2>
+      <p class="muted-text">
         Диапазон операций:
         <strong>{{ financeDateMin ? formatDate(financeDateMin) : '-' }}</strong>
         —
@@ -511,7 +514,7 @@ onMounted(async () => {
         </label>
       </div>
 
-      <h3>Оценка: стоит ли продолжать</h3>
+      <h3 class="section-title">Оценка: стоит ли продолжать</h3>
       <div class="stats-grid">
         <div class="stat-item">
           <span>Чистая прибыль по ставкам (по файлу ставок)</span>
