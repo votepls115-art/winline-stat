@@ -73,6 +73,16 @@ export function parseBets(text: string): Bet[] {
 
     const { type, discipline, tournament } = detectTypeDisciplineTournament(raw)
 
+    const amount = amountMatch
+      ? Number.parseFloat((amountMatch[1] ?? '0').replace(/\s/g, ''))
+      : 0
+
+    const rawResult = resultMatch
+      ? Number.parseFloat((resultMatch[1] ?? '0').replace(/\s/g, ''))
+      : 0
+
+    const netResult = rawResult > 0 ? rawResult - amount : rawResult
+
     bets.push({
       id: idMatch[1] ?? '0',
       date: parseDate(dateMatch[1] ?? '01.01.1970', dateMatch[2] ?? '00:00:00'),
@@ -82,12 +92,8 @@ export function parseBets(text: string): Bet[] {
       coefficient: coefficientMatch
         ? Number.parseFloat((coefficientMatch[1] ?? '0').replace(',', '.'))
         : 0,
-      amount: amountMatch
-        ? Number.parseFloat((amountMatch[1] ?? '0').replace(/\s/g, ''))
-        : 0,
-      result: resultMatch
-        ? Number.parseFloat((resultMatch[1] ?? '0').replace(/\s/g, ''))
-        : 0,
+      amount,
+      result: netResult,
     })
   }
 
