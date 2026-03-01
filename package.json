@@ -4,9 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "dev": "npm run build:styles && vite",
+    "build": "npm run build:styles && vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "build:styles": "node scripts/build-styles.mjs"
   },
   "dependencies": {
     "chart.js": "^4.5.1",
