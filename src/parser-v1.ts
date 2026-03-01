@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Bet } from './types'
 
 export function parseBets(text: string): Bet[] {

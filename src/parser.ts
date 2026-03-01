@@ -1,79 +1,95 @@
 import type { Bet } from './types'
 
+function normalizeText(rawText: string): string {
+  return rawText
+    .replace(/\\r\\n/g, '\n')
+    .replace(/\\r/g, '\n')
+    .replace(/\\n/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+}
+
+function parseDate(dateRaw: string, timeRaw: string): Date {
+  const [day = 1, month = 1, year = 1970] = dateRaw.split('.').map(Number)
+  const [hours = 0, minutes = 0, seconds = 0] = timeRaw.split(':').map(Number)
+
+  return new Date(year, month - 1, day, hours, minutes, seconds)
+}
+
+function detectTypeDisciplineTournament(block: string): {
+  type: string
+  discipline: string
+  tournament: string
+} {
+  const lines = block
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const typeIndex = lines.findIndex((line) =>
+    ['Киберспорт', 'Футбол', 'Хоккей', 'Теннис', 'Баскетбол'].includes(line),
+  )
+
+  if (typeIndex === -1) {
+    return {
+      type: 'Unknown',
+      discipline: 'Unknown',
+      tournament: 'Unknown',
+    }
+  }
+
+  const type = lines[typeIndex] ?? 'Unknown'
+  const discipline = lines[typeIndex + 1] ?? 'Unknown'
+
+  const tournamentLine = lines
+    .slice(typeIndex + 2)
+    .find((line) => !line.startsWith('Завершен'))
+
+  return {
+    type,
+    discipline,
+    tournament: tournamentLine ?? 'Unknown',
+  }
+}
+
 export function parseBets(text: string): Bet[] {
+  const normalized = normalizeText(text)
   const bets: Bet[] = []
-  const rawBets = text.split(/Ординар №/).filter(Boolean)
 
-  const knownEsports = [
-    'Counter-Strike',
-    'Valorant',
-    'DOTA 2'
-  ]
+  const rawBets = normalized
+    .split(/Ординар\s*№/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
 
-  for (let raw of rawBets) {
-    raw = raw.trim()
-
+  for (const raw of rawBets) {
     const idMatch = raw.match(/^(\d+)/)
-    const dateMatch = raw.match(/(\d{2}\.\d{2}\.\d{4}) \| (\d{2}:\d{2}:\d{2})/)
-    const amountMatch = raw.match(/Сумма:\s*([\d\s]+)/)
-    const resultMatch = raw.match(/(Итог|Выкуплено):\s*([+-]?[\d\s]+)/)
-    const coefMatch = raw.match(/(\d+\.\d+)\s+Сумма:/)
+    const dateMatch = raw.match(/(\d{2}\.\d{2}\.\d{4})\s*\|\s*(\d{2}:\d{2}:\d{2})/)
+    const amountMatch = raw.match(/Сумма:\s*([+-]?[\d\s]+)/)
+    const resultMatch = raw.match(/(?:Итог|Выкуплено):\s*([+-]?[\d\s]+)/)
+    const coefficientMatch = raw.match(/\n(\d+[.,]\d+)\s*\nСумма:/)
 
-    if (!idMatch || !dateMatch) continue
-
-    // --- Тип + дисциплина + турнир ---
-    let type = 'Unknown'
-    let discipline = 'Unknown'
-    let tournament = 'Unknown'
-
-    const typeMatch = raw.match(/(Киберспорт|Футбол|Хоккей|Теннис)/)
-
-    if (typeMatch) {
-      type = typeMatch[1]
-
-      const afterType = raw.split(type)[1]?.trim()
-
-      if (type === 'Киберспорт') {
-        for (const game of knownEsports) {
-          if (afterType.startsWith(game)) {
-            discipline = game
-            tournament = afterType
-              .replace(game, '')
-              .trim()
-              .split(' Завершен')[0]
-              .trim()
-            break
-          }
-        }
-      } else {
-        // Для обычных видов спорта
-        const parts = afterType.split(' ')
-        discipline = parts[0]
-        tournament = afterType.replace(discipline, '').trim()
-      }
+    if (!idMatch || !dateMatch) {
+      continue
     }
 
-    const bet: Bet = {
-      id: idMatch[1],
-      date: new Date(
-        dateMatch[1].split('.').reverse().join('-') +
-        'T' +
-        dateMatch[2]
-      ),
+    const { type, discipline, tournament } = detectTypeDisciplineTournament(raw)
+
+    bets.push({
+      id: idMatch[1] ?? '0',
+      date: parseDate(dateMatch[1] ?? '01.01.1970', dateMatch[2] ?? '00:00:00'),
       type,
       discipline,
       tournament,
-      coefficient: coefMatch ? parseFloat(coefMatch[1]) : 0,
+      coefficient: coefficientMatch
+        ? Number.parseFloat((coefficientMatch[1] ?? '0').replace(',', '.'))
+        : 0,
       amount: amountMatch
-        ? parseFloat(amountMatch[1].replace(/\s/g, ''))
+        ? Number.parseFloat((amountMatch[1] ?? '0').replace(/\s/g, ''))
         : 0,
       result: resultMatch
-        ? parseFloat(resultMatch[2].replace(/\s/g, ''))
-        : 0
-    }
-
-    bets.push(bet)
+        ? Number.parseFloat((resultMatch[1] ?? '0').replace(/\s/g, ''))
+        : 0,
+    })
   }
 
-  return bets
+  return bets.sort((a, b) => a.date.getTime() - b.date.getTime())
 }
