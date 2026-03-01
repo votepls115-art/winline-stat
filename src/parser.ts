@@ -20,14 +20,25 @@ function detectTypeDisciplineTournament(block: string): {
   discipline: string
   tournament: string
 } {
+  const sportTypes = new Set([
+    'Киберспорт',
+    'Футбол',
+    'Хоккей',
+    'Теннис',
+    'Баскетбол',
+    'Волейбол',
+    'Настольный теннис',
+    'Гандбол',
+    'Бейсбол',
+    'Мини-футбол',
+  ])
+
   const lines = block
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
 
-  const typeIndex = lines.findIndex((line) =>
-    ['Киберспорт', 'Футбол', 'Хоккей', 'Теннис', 'Баскетбол'].includes(line),
-  )
+  const typeIndex = lines.findIndex((line) => sportTypes.has(line))
 
   if (typeIndex === -1) {
     return {
@@ -38,7 +49,9 @@ function detectTypeDisciplineTournament(block: string): {
   }
 
   const type = lines[typeIndex] ?? 'Unknown'
-  const discipline = lines[typeIndex + 1] ?? 'Unknown'
+  const secondLevelValue = lines[typeIndex + 1] ?? 'Unknown'
+  const discipline =
+    type === 'Киберспорт' ? secondLevelValue : `${secondLevelValue} (${type})`
 
   const tournamentLine = lines
     .slice(typeIndex + 2)
