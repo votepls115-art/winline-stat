@@ -12,11 +12,11 @@ import {
   CategoryScale,
 } from 'chart.js'
 import type { Bet, FinanceOperation } from './types'
-import financeDataRaw from '../deposit-2-month.txt?raw'
 
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale)
 
-const DEFAULT_DATASET_PATH = '/data/default-bets.txt'
+const DEFAULT_BETS_DATASET_PATH = '/data/default-bets.txt'
+const DEFAULT_FINANCE_DATASET_PATH = '/data/default-finance.txt'
 
 const store = useBetStore()
 const activeTab = ref<'bets' | 'finance'>('bets')
@@ -40,6 +40,15 @@ function formatDate(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+function formatCurrency(value: number): string {
+  return value.toLocaleString('ru-RU', {
+    style: 'currency',
+    currency: 'RUB',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
 }
 
 function weekStart(date: Date): Date {
@@ -274,19 +283,27 @@ async function loadBetsFromText(text: string) {
   store.bets = parseBets(text)
 }
 
-async function loadDefaultData() {
-  const response = await fetch(DEFAULT_DATASET_PATH)
+async function loadDefaultBetsData() {
+  const response = await fetch(DEFAULT_BETS_DATASET_PATH)
   if (!response.ok) return
 
   const text = await response.text()
   await loadBetsFromText(text)
 }
 
-function loadFinanceData() {
-  financeOperations.value = parseFinanceOperations(financeDataRaw)
+function loadFinanceFromText(text: string) {
+  financeOperations.value = parseFinanceOperations(text)
 }
 
-function handleFile(e: Event) {
+async function loadDefaultFinanceData() {
+  const response = await fetch(DEFAULT_FINANCE_DATASET_PATH)
+  if (!response.ok) return
+
+  const text = await response.text()
+  loadFinanceFromText(text)
+}
+
+function handleBetsFile(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
 
@@ -297,24 +314,44 @@ function handleFile(e: Event) {
   reader.readAsText(file)
 }
 
+function handleFinanceFile(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = () => {
+    loadFinanceFromText((reader.result as string) || '')
+  }
+  reader.readAsText(file)
+}
+
 onMounted(async () => {
-  await loadDefaultData()
-  loadFinanceData()
+  await loadDefaultBetsData()
+  await loadDefaultFinanceData()
 })
 </script>
 
 <template>
-  <div style="padding: 20px; max-width: 1200px; margin: auto">
-    <h1>Winline Stats</h1>
+  <div class="page">
+    <header class="page-header">
+      <h1>Winline Stats</h1>
+      <p class="subtitle">Аналитика ставок и финансов в одном месте</p>
+    </header>
 
-    <div style="display: flex; gap: 12px; margin-bottom: 16px">
-      <button @click="activeTab = 'bets'">Разбор ставок</button>
-      <button @click="activeTab = 'finance'">Финансовый контроль</button>
+    <div class="tabs">
+      <button :class="['tab-button', { active: activeTab === 'bets' }]" @click="activeTab = 'bets'">
+        Разбор ставок
+      </button>
+      <button :class="['tab-button', { active: activeTab === 'finance' }]" @click="activeTab = 'finance'">
+        Финансовый контроль
+      </button>
     </div>
 
-    <div v-if="activeTab === 'bets'">
-      <p><strong>Файл по умолчанию:</strong> <code>public/data/default-bets.txt</code></p>
-      <input type="file" @change="handleFile" />
+    <section v-if="activeTab === 'bets'" class="panel">
+      <div class="file-row">
+        <p><strong>Файл по умолчанию:</strong> <code>public/data/default-bets.txt</code></p>
+        <input type="file" @change="handleBetsFile" />
+      </div>
 
       <div v-if="store.bets.length">
         <h2>Фильтры периода</h2>
@@ -325,7 +362,7 @@ onMounted(async () => {
           <strong>{{ maxDate ? formatDate(maxDate) : '-' }}</strong>
         </p>
 
-        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
+        <div class="filters-grid">
           <label>
             Период:
             <select v-model="periodMode">
@@ -377,16 +414,18 @@ onMounted(async () => {
         </div>
 
         <h2>Общая статистика ставок</h2>
-        <p>Всего ставок: {{ totalBets }}</p>
-        <p>Выигрышных: {{ wins }}</p>
-        <p>Проигрышных: {{ losses }}</p>
-        <p>Winrate: {{ winrate.toFixed(2) }}%</p>
-        <p>Общая сумма ставок: {{ totalStaked.toFixed(2) }}</p>
-        <p>Чистая прибыль: {{ totalProfit.toFixed(2) }}</p>
-        <p>ROI: {{ roi.toFixed(2) }}%</p>
+        <div class="stats-grid">
+          <div class="stat-item"><span>Всего ставок</span><strong>{{ totalBets }}</strong></div>
+          <div class="stat-item"><span>Выигрышных</span><strong>{{ wins }}</strong></div>
+          <div class="stat-item"><span>Проигрышных</span><strong>{{ losses }}</strong></div>
+          <div class="stat-item"><span>Winrate</span><strong>{{ winrate.toFixed(2) }}%</strong></div>
+          <div class="stat-item"><span>Общая сумма ставок</span><strong>{{ formatCurrency(totalStaked) }}</strong></div>
+          <div class="stat-item"><span>Чистая прибыль</span><strong>{{ formatCurrency(totalProfit) }}</strong></div>
+          <div class="stat-item"><span>ROI</span><strong>{{ roi.toFixed(2) }}%</strong></div>
+        </div>
 
         <h2>Сортировка статистик</h2>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
+        <div class="filters-grid">
           <label>
             По:
             <select v-model="statSortMode">
@@ -405,26 +444,36 @@ onMounted(async () => {
         </div>
 
         <h2>По дисциплинам</h2>
-        <div v-for="[key, val] in byDiscipline" :key="key">
-          {{ key }} — ставок: {{ val.count }}, чистая прибыль: {{ val.profit.toFixed(2) }}
+        <div v-for="[key, val] in byDiscipline" :key="key" class="list-row">
+          <span>{{ key }}</span>
+          <span>ставок: {{ val.count }}, чистая прибыль: {{ formatCurrency(val.profit) }}</span>
         </div>
 
         <h2>По типу</h2>
-        <div v-for="[key, val] in byType" :key="key">
-          {{ key }} — ставок: {{ val.count }}, чистая прибыль: {{ val.profit.toFixed(2) }}
+        <div v-for="[key, val] in byType" :key="key" class="list-row">
+          <span>{{ key }}</span>
+          <span>ставок: {{ val.count }}, чистая прибыль: {{ formatCurrency(val.profit) }}</span>
         </div>
 
         <h2>По турнирам</h2>
-        <div v-for="[key, val] in byTournament" :key="key">
-          {{ key }} — ставок: {{ val.count }}, чистая прибыль: {{ val.profit.toFixed(2) }}
+        <div v-for="[key, val] in byTournament" :key="key" class="list-row">
+          <span>{{ key }}</span>
+          <span>ставок: {{ val.count }}, чистая прибыль: {{ formatCurrency(val.profit) }}</span>
         </div>
 
         <h2>График прибыли</h2>
-        <Line :data="chartData" />
+        <div class="chart-box">
+          <Line :data="chartData" />
+        </div>
       </div>
-    </div>
+    </section>
 
-    <div v-else>
+    <section v-else class="panel">
+      <div class="file-row">
+        <p><strong>Файл по умолчанию:</strong> <code>public/data/default-finance.txt</code></p>
+        <input type="file" @change="handleFinanceFile" />
+      </div>
+
       <h2>Финансовая статистика</h2>
       <p>
         Диапазон операций:
@@ -433,7 +482,7 @@ onMounted(async () => {
         <strong>{{ financeDateMax ? formatDate(financeDateMax) : '-' }}</strong>
       </p>
 
-      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
+      <div class="filters-grid">
         <label>
           Период:
           <select v-model="financePeriodMode">
@@ -462,15 +511,23 @@ onMounted(async () => {
         </label>
       </div>
 
-      <h3>Оценка стоит ли продолжать</h3>
-      <p>Чистая прибыль по ставкам (по файлу ставок): {{ totalBetProfitAllTime.toFixed(2) }}</p>
-      <p>Количество пополнений: {{ depositsCount }}</p>
-      <p>Количество выводов: {{ withdrawalsCount }}</p>
-      <p>Среднее пополнение: {{ averageDeposit.toFixed(2) }}</p>
-      <p>Средний вывод: {{ averageWithdrawal.toFixed(2) }}</p>
-      <p>Сумма всех пополнений: {{ depositsTotal.toFixed(2) }}</p>
-      <p>Сумма всех выводов: {{ withdrawalsTotal.toFixed(2) }}</p>
-      <p>Чистая прибыль по движению средств (выводы - пополнения): {{ netCashflow.toFixed(2) }}</p>
-    </div>
+      <h3>Оценка: стоит ли продолжать</h3>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span>Чистая прибыль по ставкам (по файлу ставок)</span>
+          <strong>{{ formatCurrency(totalBetProfitAllTime) }}</strong>
+        </div>
+        <div class="stat-item"><span>Количество пополнений</span><strong>{{ depositsCount }}</strong></div>
+        <div class="stat-item"><span>Количество выводов</span><strong>{{ withdrawalsCount }}</strong></div>
+        <div class="stat-item"><span>Среднее пополнение</span><strong>{{ formatCurrency(averageDeposit) }}</strong></div>
+        <div class="stat-item"><span>Средний вывод</span><strong>{{ formatCurrency(averageWithdrawal) }}</strong></div>
+        <div class="stat-item"><span>Сумма всех пополнений</span><strong>{{ formatCurrency(depositsTotal) }}</strong></div>
+        <div class="stat-item"><span>Сумма всех выводов</span><strong>{{ formatCurrency(withdrawalsTotal) }}</strong></div>
+        <div class="stat-item">
+          <span>Чистый денежный поток (выводы - пополнения)</span>
+          <strong>{{ formatCurrency(netCashflow) }}</strong>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
