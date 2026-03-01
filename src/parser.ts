@@ -50,17 +50,18 @@ function detectTypeDisciplineTournament(block: string): {
 
   const type = lines[typeIndex] ?? 'Unknown'
   const secondLevelValue = lines[typeIndex + 1] ?? 'Unknown'
-  const discipline =
-    type === 'Киберспорт' ? secondLevelValue : `${secondLevelValue} (${type})`
+  const discipline = `${secondLevelValue} -> ${type}`
 
   const tournamentLine = lines
     .slice(typeIndex + 2)
     .find((line) => !line.startsWith('Завершен'))
 
+  const tournament = tournamentLine ?? 'Unknown'
+
   return {
     type,
     discipline,
-    tournament: tournamentLine ?? 'Unknown',
+    tournament: `${tournament} (${discipline})`,
   }
 }
 

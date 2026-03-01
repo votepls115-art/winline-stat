@@ -133,9 +133,7 @@ export function useBetsAnalytics(source: () => Bet[]) {
     sortStatsEntries(Object.entries(aggregateBy(filteredBets.value, (bet) => bet.discipline))),
   )
   const byTournament = computed(() =>
-    sortStatsEntries(
-      Object.entries(aggregateBy(filteredBets.value, (bet) => `${bet.tournament} (${bet.type})`)),
-    ),
+    sortStatsEntries(Object.entries(aggregateBy(filteredBets.value, (bet) => bet.tournament))),
   )
 
   const chartData = computed(() => {
