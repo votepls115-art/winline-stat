@@ -2,6 +2,7 @@ import type { FinanceOperation } from './types'
 
 function normalizeText(rawText: string): string {
   return rawText
+    .replace(/\\n/g, '\n')
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
     .replace(/\n/g, '\n')
@@ -36,7 +37,7 @@ function detectOperationType(operationRaw: string): FinanceOperation['type'] | n
   return null
 }
 
-const DATE_PATTERN = /^\d{2}[.-]\d{2}[.-]\d{4}$/
+const DATE_PATTERN = /^\d{1,2}[.-]\d{1,2}[.-]\d{4}$/
 const TIME_PATTERN = /^\d{2}:\d{2}(?::\d{2})?$/
 
 function parseBlock(block: string): FinanceOperation | null {
