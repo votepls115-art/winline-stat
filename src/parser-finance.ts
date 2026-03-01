@@ -18,6 +18,7 @@ function parseAmount(amountRaw: string): number {
   const normalized = amountRaw
     .replace(/\u00A0/g, ' ')
     .replace(/,/g, '.')
+    .replace(/[−–—]/g, '-')
     .replace(/[^\d+\-.\s]/g, '')
     .replace(/\s/g, '')
 
@@ -35,35 +36,52 @@ function detectOperationType(operationRaw: string): FinanceOperation['type'] | n
   return null
 }
 
+const DATE_PATTERN = /^\d{2}[.-]\d{2}[.-]\d{4}$/
+const TIME_PATTERN = /^\d{2}:\d{2}(?::\d{2})?$/
+
+function parseBlock(block: string): FinanceOperation | null {
+  const lines = block
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  if (!lines.length) return null
+
+  const dateIndex = lines.findIndex((line) => DATE_PATTERN.test(line))
+  if (dateIndex < 0) return null
+
+  const id = dateIndex > 0 ? lines[dateIndex - 1] ?? '' : ''
+  const dateRaw = lines[dateIndex]
+  const timeRaw = lines[dateIndex + 1]
+  const operationRaw = lines[dateIndex + 2]
+  const amountRaw = lines[dateIndex + 3]
+
+  if (!id || !dateRaw || !timeRaw || !operationRaw || !amountRaw) return null
+  if (!TIME_PATTERN.test(timeRaw)) return null
+
+  const type = detectOperationType(operationRaw)
+  if (!type) return null
+
+  const parsedAmount = Math.abs(parseAmount(amountRaw))
+  if (!Number.isFinite(parsedAmount)) return null
+
+  return {
+    id,
+    date: parseDate(dateRaw, timeRaw),
+    type,
+    amount: parsedAmount,
+  }
+}
+
 export function parseFinanceOperations(text: string): FinanceOperation[] {
   const normalized = normalizeText(text)
-  const operationPattern =
-    /(?:^|\n)\s*(\d+)\s*\n\s*(\d{2}[.-]\d{2}[.-]\d{4})\s*\n\s*(\d{2}:\d{2}(?::\d{2})?)\s*\n\s*([^\n]+?)\s*\n\s*([+-]?\d[\d\s,.]*)/g
+  const blocks = normalized.split(/\n\s*\n+/)
 
   const operations: FinanceOperation[] = []
-  const matches = normalized.matchAll(operationPattern)
 
-  for (const match of matches) {
-    const id = match[1]
-    const dateRaw = match[2]
-    const timeRaw = match[3]
-    const operationRaw = match[4]
-    const amountRaw = match[5]
-
-    if (!id || !dateRaw || !timeRaw || !operationRaw || !amountRaw) continue
-
-    const type = detectOperationType(operationRaw)
-    if (!type) continue
-
-    const parsedAmount = Math.abs(parseAmount(amountRaw))
-    if (!Number.isFinite(parsedAmount)) continue
-
-    operations.push({
-      id,
-      date: parseDate(dateRaw, timeRaw),
-      type,
-      amount: parsedAmount,
-    })
+  for (const block of blocks) {
+    const operation = parseBlock(block)
+    if (operation) operations.push(operation)
   }
 
   return operations.sort((a, b) => a.date.getTime() - b.date.getTime())
