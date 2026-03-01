@@ -34,10 +34,12 @@ body {
   box-shadow: 0 20px 45px rgba(31, 45, 93, 0.12);
 }
 
-.page-header h1 {
-  margin: 0;
-  font-size: 2.1rem;
-  letter-spacing: 0.02em;
+.page-header {
+  h1 {
+    margin: 0;
+    font-size: 2.1rem;
+    letter-spacing: 0.02em;
+  }
 }
 
 .subtitle {
@@ -61,17 +63,17 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-}
 
-.tab-button:hover {
-  transform: translateY(-1px);
-  background: #e8edff;
-}
+  &:hover {
+    transform: translateY(-1px);
+    background: #e8edff;
+  }
 
-.tab-button.active {
-  color: #fff;
-  background: linear-gradient(120deg, #355df5, #6476ff);
-  border-color: #4a66ff;
+  &.active {
+    color: #fff;
+    background: linear-gradient(120deg, #355df5, #6476ff);
+    border-color: #4a66ff;
+  }
 }
 
 .panel {
@@ -144,19 +146,19 @@ input[type='file'] {
   padding: 14px;
   background: #fff;
   box-shadow: 0 8px 20px rgba(49, 66, 117, 0.06);
-}
 
-.stat-item span {
-  display: block;
-  font-size: 0.9rem;
-  color: #5b6477;
-}
+  span {
+    display: block;
+    font-size: 0.9rem;
+    color: #5b6477;
+  }
 
-.stat-item strong {
-  display: block;
-  margin-top: 8px;
-  font-size: 1.15rem;
-  color: #0f172a;
+  strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 1.15rem;
+    color: #0f172a;
+  }
 }
 
 .list-row {
@@ -178,10 +180,10 @@ input[type='file'] {
 .list-value {
   color: #475569;
   white-space: nowrap;
-}
 
-.list-value strong {
-  color: #111827;
+  strong {
+    color: #111827;
+  }
 }
 
 .chart-box {
